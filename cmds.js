@@ -134,72 +134,50 @@ exports.testCmd = (rl,id) => {
   });
 };
 
-exports.playCmd = rl => {
-  
+exports.playCmd = (rl) => {
     let score = 0;
-    let toBePlayed = [];
-
-    models.quiz.findAll({raw:true})
-    .then(quizzes=>{
-      toBePlayed=quizzes;
-    })
-    
-
-    const playOne=() =>{
-    return Promise.resolve()
-    .then(()=> {
-     
-    
-
-    if(toBePlayed.length <= 0){
-      console.log("SE ACABO");
-      return;
-    }
-
-    let pos=Math.floor(Math.random()*toBePlayed.length);
-    let quiz=toBePlayed[pos];
-    toBePlayed.splice(pos,1);
-
-    return makeQuestion(rl,quiz.question)
-    .then(answer => {
-      if(answer.toLowerCase().trim() === quiz.answer.toLowerCase().trim()){
-        score++;
-        console.log("chachi");
-        return playOne();
-      }else{
-        console.log("CACA");
+  let toBeResolved = [];
+  
+  const playOne = () => {
+    return new Promise((resolve,reject) => {
+      
+      if(toBeResolved.length <=0){
+        console.log("No hay nada mas que preguntar.\nFin del examen. Aciertos:");
+        resolve();
+        return;
       }
+      let pos = Math.floor(Math.random()*toBeResolved.length);
+      let quiz = toBeResolved[pos];
+      toBeResolved.splice(pos,1);
+      
+      makeQuestion(rl, quiz.question+'? ')
+      .then(answer => {
+        if(answer.toLowerCase().trim() === quiz.answer.toLowerCase().trim()){
+          score++;
+          console.log("CORRECTO - Lleva ",score, "aciertos");
+          resolve(playOne());
+        } else {
+          console.log("INCORRECTO.\nFin del examen. Aciertos:");
+          resolve();
+        } 
+      })
     })
-  })
   }
-
- models.quiz.findAll({raw:true})
- .then(quizzes=>{
-    toBePlayed=quizzes;
-  })
- .then(() => {
-  return playOne();
- })
-
- .catch(e => {
-  consle.log("Error: " + e);
- })
- .then(() => {
-  console.log(score);
-  rl.prompt();
- })
- 
-};
-
-exports.deleteCmd = (rl,id) =>{
-  validateId(id)
-  .then(id => models.quiz.destroy({where:{id}}))
-  .catch(error => {
-    errorlog(error.message);
+  
+  models.quiz.findAll({raw: true})
+  .then(quizzes => {
+    toBeResolved = quizzes;
   })
   .then(() => {
+    return playOne();
+  })
+  .catch(error => {
+    console.log(error);
+  })
+  .then(() => {
+    biglog(score,'magenta');
     rl.prompt();
-  });
+  })
 };
 
 exports.editCmd= (rl,id) =>{
